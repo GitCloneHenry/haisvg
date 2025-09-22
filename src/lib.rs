@@ -41,11 +41,14 @@ impl SVGElement {
     }
 
     fn format_keys(&self) -> String {
-        self.attributes
+        let mut items = self.attributes
             .iter()
             .map(|(key, value)| format!("{}=\"{}\"", key, value))
-            .collect::<Vec<_>>()
-            .join(" ")
+            .collect::<Vec<_>>();
+        
+        items.sort();
+        
+        items.join(" ")
     }
 }
 
@@ -95,11 +98,14 @@ impl SVG {
     }
 
     fn format_keys(&self) -> String {
-        self.attributes
+        let mut items = self.attributes
             .iter()
             .map(|(key, value)| format!("{}=\"{}\"", key, value))
-            .collect::<Vec<_>>()
-            .join(" ")
+            .collect::<Vec<_>>();
+        
+        items.sort();
+        
+        items.join(" ")
     }
 
     fn format_elements(&self) -> String {
@@ -146,21 +152,21 @@ mod tests {
 
         assert_eq!(
             test_element.to_string(),
-            "<test_element \"test_attr\"=\"foo\" />"
+            "<test_element test_attr=\"foo\" />"
         );
     }
 
-    // #[test]
-    // fn test_svg_formatting() {
-    //     let mut svg = SVG::new(Some(100), Some(100), None);
-    //     let mut test_element = SVGElement::new("test_element");
+    #[test]
+    fn test_svg_formatting() {
+        let mut svg = SVG::new(Some(100), Some(100), None);
+        let mut test_element = SVGElement::new("test_element");
         
-    //     test_element.add_attr("test_attr", "foo");      
-    //     svg.add_element(test_element);
+        test_element.add_attr("test_attr", "foo");      
+        svg.add_element(test_element);
 
-    //     assert_eq!(
-    //         svg.to_string(),
-    //         "<svg \"width\"=\"100\" \"height\"=\"100\" \"xmlns\"=\"http://www.w3.org/2000/svg\">\n<test_element \"test_attr\"=\"foo\" \\>\n</svg>"
-    //     )
-    // }
+        assert_eq!(
+            svg.to_string(),
+            "<svg height=\"100\" width=\"100\" xmlns=\"http://www.w3.org/2000/svg\">\n<test_element test_attr=\"foo\" />\n</svg>"
+        )
+    }
 }
