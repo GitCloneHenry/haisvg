@@ -149,4 +149,18 @@ mod tests {
             "<test_element \"test_attr\"=\"foo\" \\>"
         );
     }
+
+    #[test]
+    fn test_svg_formatting() {
+        let mut svg = SVG::new(Some(100), Some(100), None);
+        let mut test_element = SVGElement::new("test_element");
+        
+        test_element.add_attr("test_attr", "foo");      
+        svg.add_element(test_element);
+
+        assert_eq!(
+            svg.to_string(),
+            "<svg \"width\"=\"100\" \"height\"=\"100\" \"xmlns\"=\"http://www.w3.org/2000/svg\">\n<test_element \"test_attr\"=\"foo\" \\>\n</svg>"
+        )
+    }
 }
