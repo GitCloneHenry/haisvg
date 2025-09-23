@@ -72,28 +72,28 @@ impl PathNode {
     pub fn horizontal_to<T: ToString>(x: T) -> PathNode {
         PathNode {
             tag: "H".to_string(),
-            point_data: format!("{}", x.to_string()),
+            point_data: x.to_string(),
         }
     }
 
     pub fn horizontal_by<T: ToString>(dx: T) -> PathNode {
         PathNode {
             tag: "h".to_string(),
-            point_data: format!("{}", dx.to_string()),
+            point_data: dx.to_string(),
         }
     }
 
     pub fn vertical_to<T: ToString>(y: T) -> PathNode {
         PathNode {
             tag: "V".to_string(),
-            point_data: format!("{}", y.to_string()),
+            point_data: y.to_string(),
         }
     }
 
     pub fn vertical_by<T: ToString>(dy: T) -> PathNode {
         PathNode {
             tag: "v".to_string(),
-            point_data: format!("{}", dy.to_string()),
+            point_data: dy.to_string(),
         }
     }
 
@@ -181,7 +181,7 @@ impl PathNode {
 
     pub fn smooth_quadratic_to<T: ToString>(x: T, y: T) -> PathNode {
         PathNode {
-            tag: "Q".to_string(),
+            tag: "T".to_string(),
             point_data: format!(
                 "{},{}",
                 x.to_string(),
@@ -190,9 +190,9 @@ impl PathNode {
         }
     }
 
-    pub fn quadratic_by<T: ToString>(dx: T, dy: T) -> PathNode {
+    pub fn smooth_quadratic_by<T: ToString>(dx: T, dy: T) -> PathNode {
         PathNode {
-            tag: "q".to_string(),
+            tag: "t".to_string(),
             point_data: format!(
                 "{},{}",
                 dx.to_string(),
@@ -200,13 +200,52 @@ impl PathNode {
             ),
         }
     }
+
+    pub fn elliptical_to<T: ToString>(rx: T, ry: T, angle: T, large_arc_flag: T, sweep_flag: T, x: T, y: T) -> PathNode {
+        PathNode {
+            tag: "A".to_string(),
+            point_data: format!(
+                "{} {} {} {} {} {},{}",
+                rx.to_string(),
+                ry.to_string(),
+                angle.to_string(),
+                large_arc_flag.to_string(),
+                sweep_flag.to_string(),
+                x.to_string(),
+                y.to_string(),
+            )
+        }
+    }
+
+    pub fn elliptical_by<T: ToString>(rx: T, ry: T, angle: T, large_arc_flag: T, sweep_flag: T, dx: T, dy: T) -> PathNode {
+        PathNode {
+            tag: "a".to_string(),
+            point_data: format!(
+                "{} {} {} {} {} {},{}",
+                rx.to_string(),
+                ry.to_string(),
+                angle.to_string(),
+                large_arc_flag.to_string(),
+                sweep_flag.to_string(),
+                dx.to_string(),
+                dy.to_string(),
+            )
+        }
+    }
+
+    pub fn close_path() -> PathNode {
+        PathNode {
+            tag: "Z".to_string(),
+            point_data: "".to_string()
+        }
+    }
 }
 
-// impl fmt::Display for PathNode {
-//     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(formatter, "{} {}", self.tag, self.point_data)
-//     }
-// }
+impl fmt::Display for PathNode {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{} {}", self.tag, self.point_data)
+    }
+}
 
 pub trait ToPathNode {
     fn to_path_node(&self, tag: &str) -> PathNode;
@@ -233,13 +272,15 @@ impl<T: ToString> ToPathNode for (T, T) {
 pub struct SVGElement {
     tag: String,
     attributes: HashMap<String, String>,
+    inner: Option<String>
 }
 
 impl SVGElement {
-    pub fn new(tag: &str) -> SVGElement {
+    pub fn new(tag: &str) -> Self {
         SVGElement {
             tag: tag.to_string(),
             attributes: HashMap::new(),
+            inner: None
         }
     }
 
@@ -261,6 +302,7 @@ impl SVGElement {
         let mut rect = SVGElement {
             tag: "rect".to_string(),
             attributes: HashMap::new(),
+            inner: None
         };
 
         rect.add_attr("width", width)
@@ -277,6 +319,7 @@ impl SVGElement {
         let mut circle = SVGElement {
             tag: "circle".to_string(),
             attributes: HashMap::new(),
+            inner: None
         };
 
         circle
@@ -291,6 +334,7 @@ impl SVGElement {
         let mut ellipse = SVGElement {
             tag: "ellipse".to_string(),
             attributes: HashMap::new(),
+            inner: None
         };
 
         ellipse
@@ -306,6 +350,7 @@ impl SVGElement {
         let mut line = SVGElement {
             tag: "line".to_string(),
             attributes: HashMap::new(),
+            inner: None
         };
 
         line.add_attr("x1", x1)
@@ -322,6 +367,7 @@ impl SVGElement {
         let mut polygon = SVGElement {
             tag: "polygon".to_string(),
             attributes: HashMap::new(),
+            inner: None
         };
 
         polygon.add_attr("points", points);
@@ -335,11 +381,60 @@ impl SVGElement {
         let mut polyline = SVGElement {
             tag: "polyline".to_string(),
             attributes: HashMap::new(),
+            inner: None
         };
 
         polyline.add_attr("points", points);
 
         polyline
+    }
+
+    pub fn path<T: ToPathNode>(d: Vec<T>) -> Self {
+        let path_items = d.iter().map(|node| node.to_path_node("").to_string()).collect::<Vec<_>>().join(" ");
+
+        let mut path = SVGElement {
+            tag: "path".to_string(),
+            attributes: HashMap::new(),
+            inner: None
+        };
+
+        path.add_attr("d", path_items);
+
+        path
+    } 
+
+    pub fn text<T: ToString>(text: T, x: T, y: T, dx: Option<T>, dy: Option<T>, rotate: Option<T>, text_length: Option<T>, length_adjust: Option<T>) -> Self { 
+        let dx = dx
+            .map(|dx| dx.to_string())
+            .unwrap_or_else(|| "0".to_string());
+        let dy = dy
+            .map(|dy| dy.to_string())
+            .unwrap_or_else(|| "0".to_string());
+        let rotate = rotate
+            .map(|r| r.to_string())
+            .unwrap_or_else(|| "0".to_string());
+        let text_length = text_length
+            .map(|tl| tl.to_string())
+            .unwrap_or_else(|| "none".to_string());
+        let length_adjust = length_adjust
+            .map(|la| la.to_string())
+            .unwrap_or_else(|| "spacing".to_string());
+
+        let mut text = SVGElement {
+            tag: "text".to_string(),
+            attributes: HashMap::new(),
+            inner: Some(text.to_string()),
+        };
+
+        text.add_attr("x", x)
+            .add_attr("y", y)
+            .add_attr("dx", dx)
+            .add_attr("dy", dy)
+            .add_attr("rotate", rotate)
+            .add_attr("textLength", text_length)
+            .add_attr("lengthAdjust", length_adjust);
+    
+        text
     }
 
     pub fn get_value(&self, key: &str) -> Result<&String, HaiSVGError> {
@@ -368,7 +463,17 @@ impl SVGElement {
 
 impl fmt::Display for SVGElement {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "<{} {} />", self.tag, self.format_keys())
+        write!(formatter, "<{}", self.tag)?;
+        let attrs = self.format_keys();
+        if !attrs.is_empty() {
+            write!(formatter, " {}", attrs)?;
+        }
+
+        if let Some(inner) = &self.inner {
+            write!(formatter, ">{}</{}>", inner, self.tag)
+        } else {
+            write!(formatter, " />")
+        }
     }
 }
 
